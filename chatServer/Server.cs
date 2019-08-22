@@ -21,6 +21,8 @@ namespace chatServer
             //We expect the incoming object to be a string which we state explicitly by using <string>
             NetworkComms.AppendGlobalIncomingPacketHandler<string>("ConnectionRequest", ConnectNewUser);
             NetworkComms.AppendGlobalIncomingPacketHandler<string[]>("OpenServer", OpenNewChatServer);
+            NetworkComms.AppendGlobalIncomingPacketHandler<string>("connectMe", ConnectToChatServer);
+            NetworkComms.AppendGlobalIncomingPacketHandler<string[]>("newMessage", AddMessageChatServer);
 
             // Close connection and open connection array for new connection
             NetworkComms.AppendGlobalConnectionCloseHandler(closeConnection);
@@ -40,12 +42,30 @@ namespace chatServer
             NetworkComms.Shutdown();
         }
 
+        private static void AddMessageChatServer(PacketHeader header, Connection connection, string[] info)
+        {
+            ConnectionInfo user = connections[int.Parse(info[0])];
+            ChatServer cs = chatServers[int.Parse(info[1])];
+            cs.writeMessage(user.username + ": " + info[2]);
+        }
+
+        // Connects user to existing chat server
+        private static void ConnectToChatServer(PacketHeader header, Connection connection, string connectionString)
+        {
+            ChatServer cs = chatServers[int.Parse(connectionString.Split('|').First())];
+            ConnectionInfo user = connections[int.Parse(connectionString.Split('|').Last())];
+            user.joinServer(cs);            
+            // Should open chat server and print log to window
+
+        }
+
         // Creates a new chat server and invites requested users to server
         // First element in requested users is the sending users id
         private static void OpenNewChatServer(PacketHeader header, Connection connection, string[] requestedUsers)
         {
             // Open a new chat server and connect current user
             ChatServer newServer = new ChatServer();
+            chatServers[newServer.chatServerId] = newServer;
             ConnectionInfo requestingUser = connections[int.Parse(requestedUsers[0])];
             newServer.connectUser(requestingUser);
 

@@ -19,11 +19,47 @@ namespace ChatApp
     /// </summary>
     public partial class ChatWindow : Window
     {
+        public int chatServerId = -1;
+        private MainWindow main = null;
 
         public ChatWindow()
         {
             InitializeComponent();
         }
-             
+
+        public void setChatId(int ChatId)
+        {
+            chatServerId = ChatId;
+        }
+
+        public void setMainWindow(MainWindow mainWindow)
+        {
+            main = mainWindow;
+        }
+
+        public void writeMessage(String newMessage)
+        {
+            chatTextBox.Dispatcher.BeginInvoke(new Action<String>((message) =>
+            {
+                chatTextBox.Text += message + '\n';
+                var oldFocusedElement = FocusManager.GetFocusedElement(this);
+
+                this.chatTextBox.Focus();
+                this.chatTextBox.CaretIndex = this.chatTextBox.Text.Length;
+                this.chatTextBox.ScrollToEnd();
+                FocusManager.SetFocusedElement(this, oldFocusedElement);
+
+            }), new object[] { newMessage });
+        }
+
+        // When you press enter, send message to everyone on server
+        private void MessageTextBox_KeyDown(object sender, KeyEventArgs e)
+        {
+            if (e.Key == Key.Enter && messageTextBox.Text!="")
+            {
+                main.sendMessage(chatServerId,messageTextBox.Text);
+                messageTextBox.Clear();
+            }
+        }
     }
 }

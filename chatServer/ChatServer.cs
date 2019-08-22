@@ -24,11 +24,24 @@ namespace chatServer
         public void writeMessage(String message)
         {
             ChatLog.Add(message);
+            foreach(ConnectionInfo connectedUser in ConnectedUsers)
+            {
+                string[] info = new string[2];
+                info[0]=chatServerId.ToString();
+                info[1]=message;
+                connectedUser.connection.SendObject("newMessage", info);
+            }
         }
 
         public void connectUser(ConnectionInfo newUser)
         {
             ConnectedUsers.Add(newUser);
+            if (ConnectedUsers.Count() > 1)
+            {
+                List<String> chatLogCopy = new List<string>(ChatLog);
+                chatLogCopy.Insert(0, chatServerId.ToString());
+                newUser.connection.SendObject("chatLog", chatLogCopy);
+            }
         }
 
         public void disconnectUser(ConnectionInfo user)

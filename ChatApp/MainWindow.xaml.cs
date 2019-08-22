@@ -34,13 +34,36 @@ namespace ChatApp
             NetworkComms.AppendGlobalIncomingPacketHandler<string>("newUserAdded", ReceiveNewUser);
             NetworkComms.AppendGlobalIncomingPacketHandler<string>("userConnectionRequest", ReceiveUserConnectionRequestPacket);
             NetworkComms.AppendGlobalIncomingPacketHandler<int>("chatServerOpened", OpenNewChatServer);
+            NetworkComms.AppendGlobalIncomingPacketHandler<string[]>("newMessage", AddNewMessage);
+            NetworkComms.AppendGlobalIncomingPacketHandler<List<String>>("chatLog", WriteChatLog);
             
+        }
+
+        private void WriteChatLog(PacketHeader header, Connection connection, List<String> logInfo)
+        {
+            int serverId = int.Parse(logInfo[0]);
+            for (int i = 1; i< logInfo.Count(); i++)
+            {
+                chatWindows[serverId].writeMessage(logInfo[i]);
+            }
+        }
+
+        private void AddNewMessage(PacketHeader header, Connection connection, String[] info)
+        {
+            chatWindows[int.Parse(info[0])].writeMessage(info[1]);
         }
 
         // Opens new chat server
         private void OpenNewChatServer(PacketHeader header, Connection connection, int chatServerId)
         {
-            chatWindows.Add(chatServerId, new ChatWindow());
+            this.Dispatcher.BeginInvoke(new Action<int>((serverId) =>
+            {
+                chatWindows.Add(serverId, new ChatWindow());
+                chatWindows[serverId].Dispatcher.BeginInvoke(new Action<int>((chatId) => this.Show()), new object[] { serverId });
+                chatWindows[serverId].Show();
+                chatWindows[serverId].setChatId(serverId);
+                chatWindows[serverId].setMainWindow(this);
+            }), new object[] { chatServerId });
         }
 
         // Receives initial connection request. Assigns user id and populates list.
@@ -55,7 +78,20 @@ namespace ChatApp
                     connectedUsersListBox.Items.Add(user);
                 }
             }), new object[] { userList });
-            
+
+            connectButton.Dispatcher.BeginInvoke(new Action(()=>{
+                connectButton.Content = "Connected!";
+                connectButton.IsEnabled = false;
+            }));
+
+            usernameTextBox.Dispatcher.BeginInvoke(new Action(() => {
+                usernameTextBox.IsReadOnly = true;
+            }));
+
+            serverIpTextBox.Dispatcher.BeginInvoke(new Action(() => {
+                serverIpTextBox.IsReadOnly = true;
+            }));
+
         }
 
         // Receives packet that lets them know a user has been added.
@@ -69,9 +105,16 @@ namespace ChatApp
             MessageBoxResult result = MessageBox.Show(message.Split('|').Last(), "Connection Request", MessageBoxButton.YesNo, MessageBoxImage.Question);
             if (result == MessageBoxResult.Yes)
             {
-                ChatWindow chatWindow = new ChatWindow();
-                chatWindow.Show();
+                int chatServerId = int.Parse(message.Split('|').First());
                 NetworkComms.SendObject("connectMe", serverIP, serverPort, message.Split('|').First()+"|"+userId);
+                this.Dispatcher.BeginInvoke(new Action<int>((serverId) =>
+                {
+                    chatWindows.Add(serverId, new ChatWindow());
+                    chatWindows[serverId].Dispatcher.BeginInvoke(new Action<int>((chatId) => this.Show()), new object[] { serverId });
+                    chatWindows[serverId].Show();
+                    chatWindows[serverId].setChatId(serverId);
+                    chatWindows[serverId].setMainWindow(this);
+                }), new object[] { chatServerId });
             }
         }
 
@@ -88,6 +131,15 @@ namespace ChatApp
 
             MatchCollection matches = rx.Matches(text);
             return (matches.Count != 0);            
+        }
+
+        public void sendMessage(int chatWindow, String message)
+        {
+            String[] info = new string[3];
+            info[0] = userId.ToString();
+            info[1] = chatWindow.ToString();
+            info[2] = message;
+            NetworkComms.SendObject("newMessage", serverIP, serverPort, info);
         }
 
         private void ConnectButton_Click(object sender, RoutedEventArgs e)

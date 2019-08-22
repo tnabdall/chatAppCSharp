@@ -9,9 +9,9 @@
     <Grid>
         <Canvas HorizontalAlignment="Left" Height="419" VerticalAlignment="Top" Width="792">
             <Border BorderBrush="Black" BorderThickness="3" Height="266" Canvas.Left="54" Canvas.Top="45" Width="666">
-                <TextBlock x:Name="chatTextBlock" Padding="10" TextWrapping="Wrap" FontSize ="18" Text="TextBlock"/>
+                <TextBox x:Name="chatTextBox" TextWrapping="Wrap" Text="" VerticalScrollBarVisibility="Auto" IsReadOnly="True"/>
             </Border>
-            <TextBox x:Name="messageTextBox" FontSize="18" Height="37" Canvas.Left="138" TextWrapping="Wrap" Text="TextBox" Canvas.Top="339" Width="582"/>
+            <TextBox x:Name="messageTextBox" FontSize="18" Canvas.Left="138" TextWrapping="Wrap" Text="" Canvas.Top="346" Width="582" KeyDown="MessageTextBox_KeyDown"/>
             <Label x:Name="messageLabel" Content="Message:" Canvas.Left="40" FontSize="20" FontWeight="Bold" Canvas.Top="339"/>
         </Canvas>
 
